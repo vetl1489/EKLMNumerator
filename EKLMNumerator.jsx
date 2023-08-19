@@ -56,7 +56,7 @@ deleteChars.text = decodeURI(config.cutChars);
 var viewPanel = ui.add("panel", [10, 100, 240, 275], "Вид");
 var tabBefore = viewPanel.add("checkbox", [10, 15, 200, 30], "Tab в начале");
 tabBefore.value = config.isTabBefore;
-viewPanel.add("statictext", [10, 40, 180, 55], "Отбить от текста");
+viewPanel.add("statictext", [10, 40, 120, 55], "Отбить от текста");
 var textDivider = viewPanel.add("edittext", [120, 38, 215, 58], undefined);
 textDivider.text = decodeURI(config.dividerAfter);
 var resetTab = viewPanel.add("button", [130, 67, 205, 90], "Сбросить");
