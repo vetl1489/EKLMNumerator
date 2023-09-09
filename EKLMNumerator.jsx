@@ -1,4 +1,4 @@
-// EKLMNumerator, v.1.8
+// EKLMNumerator, v.1.8.1
 // © vetl1489, Vitaly Shutikov
 // vetl1489@gmail.com
 // Adobe InDesign Script. Нумерация абзацев буквами русского алфавита.
@@ -316,7 +316,7 @@ function main() {
   
   // основной цикл
   for (i = (selectParagraphs.length - 1); i >= 0; i--) {
-    currentLetter = capitalLetters.value ? numCharList[i].toUpperCase() : numCharList[i];
+    var currentLetter = capitalLetters.value ? numCharList[i].toUpperCase() : numCharList[i];
     selectParagraphs[i].insertionPoints[0].contents = "\u200A\u200A" + tabBeforeJS + currentLetter;
     app.findTextPreferences.findWhat = "^|^|" + tabBeforeText + currentLetter;
     app.changeTextPreferences.changeTo = tabBeforeText + currentLetter + textDividerAfter;
