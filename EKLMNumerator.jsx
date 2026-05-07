@@ -1,4 +1,4 @@
-// EKLMNumerator, v.1.8.1
+// EKLMNumerator, v.1.8.2
 // © vetl1489, Vitaly Shutikov
 // vetl1489@gmail.com
 // Adobe InDesign Script. Нумерация абзацев буквами русского алфавита.
@@ -7,7 +7,7 @@
 
 var Script = {
   NAME: "EKLMNumerator",
-  VERSION: "v. 1.8",
+  VERSION: "v. 1.8.2",
   AUTHOR: "© vetl1489",
   CONFIG_FILE: "EKLMNumerator.conf",
 };
@@ -36,12 +36,12 @@ var defaultConfig = {
   windowLocation: null
 };
 
-// массив букв
+// Массив букв
 var letterList = ["а", "б", "в", "г", "д", "е", "ё", "ж", "з", "и", "й", "к", "л", "м", "н", "о", "п", "р", "с", "т", "у", "ф", "х", "ц", "ч", "ш", "щ", "ъ", "ы", "ь", "э", "ю", "я"];
 
 // Выходим, если старый InDesign
 if (parseInt(app.version, 10) < 6) {
-  alert("Скрипт для InDesign CS4 и старших версий.", headerString, true);
+  alert("Скрипт для InDesign CS4+", headerString, true);
   exit();
 }
 if (app.documents.length === 0) exit();
@@ -88,7 +88,7 @@ startString.justify = "right";
 var charList = group1.add("dropdownlist", undefined, undefined);
 charList.preferredSize = [60, UI.EDIT_TEXT_HEIGHT];
 
-// Group2. Пропустить буквы
+// Group2. Исключить буквы
 var group2 = numPanel.add("group", undefined);
 group2.orientation = "row";
 group2.alignChildren = ["left", "bottom"];
@@ -139,14 +139,14 @@ textDivider.preferredSize.width = 97;
 textDivider.alignment = ["left", "center"];
 textDivider.text = decodeURI(config.dividerAfter);
 
-// Кнопка "Сбросить" отбивку  на значение по умолчанию 
-var resetTab = viewPanel.add("button", undefined, "Сбросить");
-resetTab.text = "Сбросить";
-resetTab.alignment = ["right", "top"];
+// Кнопка "Сбросить" отбивку на значение по умолчанию 
+var resetTabButton = viewPanel.add("button", undefined, "Сбросить");
+resetTabButton.text = "Сбросить";
+resetTabButton.alignment = ["right", "top"];
 
 viewPanel.add("statictext", undefined, "Применить стиль символа");
 
-// Выпадающий список со стилями стилей символов для нумерации
+// Выпадающий список со стилями символов для нумерации
 var characterStyleDropList = viewPanel.add("dropdownlist");
 characterStyleDropList.alignment = ["fill", "top"];
 
@@ -166,7 +166,7 @@ var cancelButton = group4.add("button", undefined, "Отмена", { name: "canc
 if (config.windowLocation) window.location = config.windowLocation;
 else window.center();
 
-// заполняем список буквами
+// Заполняем список буквами
 for (var i = 0; i < letterList.length; i++) {
   charList.add("item", letterList[i]);
 }
@@ -176,12 +176,13 @@ var currentDocument = app.activeDocument;
 // Список стилей [{name, id}]
 var characterStylesList = getCharacterStyles(currentDocument);
 
-// записываем их в выпадающий список
+// Записываем стили в выпадающий список
 for (i = 0; i < characterStylesList.length; i++) {
   characterStyleDropList.add("item", characterStylesList[i].name);
 }
 // Если новый документ, выбираем [Без стиля]
-if (decodeURI(config.lastDocument) === currentDocument.name) {
+if (decodeURI(config.lastDocument) === currentDocument.name
+    && characterStylesList.length - 1 >= config.applyCharacterStyle) {
   characterStyleDropList.selection = config.applyCharacterStyle;
 } else {
   characterStyleDropList.selection = 0;
@@ -199,7 +200,7 @@ window.show();
  * Кнопка "Сбросить".
  * Устанавливаем значение по умолчанию для поля "Отбить от текста".
  */
-resetTab.onClick = function () {
+resetTabButton.onClick = function () {
   textDivider.text = ")^t";
 };
 
@@ -250,18 +251,18 @@ window.onClose = function () {
  * Главная функция.
  */
 function main() {
-  // получаем выбранный стиль
+  // Получаем выбранный стиль
   var selectStyleID = characterStylesList[characterStyleDropList.selection.index].id;
   var selectCharacterStyle = currentDocument.characterStyles.itemByID(selectStyleID);
 
-  // рабочий массив с буквами
+  // Рабочий массив с буквами
   numCharList = letterList.slice(charList.selection.index);
 
-  // массив со знаками удаления
+  // Массив со знаками удаления
   if (delChar.value) {
-    // создаем новый массив из символов введенных для исключения:
+    // Создаем новый массив из символов введенных для исключения:
     var ignoreCharacters = deleteChars.text.toLowerCase().split(/(,(\s+)?)|(\.(\s+)?)|((\s+)?)/);
-    // имена найденных удаляем из рабочего массива
+    // Имена найденных удаляем из рабочего массива
     for (var i = 0; i < ignoreCharacters.length; i++) {
       for (var j = 0; j < numCharList.length; j++) {
         if (numCharList[j] === ignoreCharacters[i]) { numCharList.splice(j, 1); }
@@ -269,7 +270,7 @@ function main() {
     }
   }
 
-  // табуляция перед "нумерацией"
+  // Табуляция перед "нумерацией"
   var tabBeforeText = "";
   var tabBeforeJS = "";
   if (tabBefore.value === true) {
@@ -277,10 +278,10 @@ function main() {
     tabBeforeJS = "\t";
   }
 
-  // табуляция после
+  // Отбивка после "нумерации"
   var textDividerAfter = decodeURI(textDivider.text);
 
-  // проверяем выделение
+  // Проверяем выделение
   if (app.selection.length === 0) {
     alert("Выделите абзацы для нумерации.", headerString);
     exit();
@@ -302,7 +303,7 @@ function main() {
       exit();
   }
 
-  // предупреждение, если количество выделенных абзацев больше
+  // Предупреждение, если количество выделенных абзацев больше
   // количества зарезервированных букв
   if (selectParagraphs.length > numCharList.length) {
     alert("Невозможно применить нумерацию!\nВыделенных абзацев: " + 
@@ -311,10 +312,10 @@ function main() {
     exit();
   }
 
-  // сбрасываем поиск по тексту
+  // Сбрасываем поиск по тексту
   app.findTextPreferences = app.changeTextPreferences = NothingEnum.nothing;
   
-  // основной цикл
+  // Основной цикл
   for (i = (selectParagraphs.length - 1); i >= 0; i--) {
     var currentLetter = capitalLetters.value ? numCharList[i].toUpperCase() : numCharList[i];
     selectParagraphs[i].insertionPoints[0].contents = "\u200A\u200A" + tabBeforeJS + currentLetter;
@@ -355,7 +356,7 @@ function readConfig(file) {
   var read = eval(file.read());
   file.close();
 
-  // элементарная проверка на валидность файла 
+  // Элементарная проверка на валидность файла 
   if (typeof defaultConfig !== "object" ||
     !(read.hasOwnProperty("startChar") &&
     read.hasOwnProperty("windowLocation"))) {
@@ -383,7 +384,7 @@ function saveFile(file, content) {
  */
 function getScriptFolder() {
   try { 
-    // при запуске в отладчике, возникает исключение 
+    // При запуске в отладчике, возникает исключение 
     return app.activeScript.path; 
   }
   catch (error) {
