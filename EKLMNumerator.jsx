@@ -139,7 +139,7 @@ textDivider.preferredSize.width = 97;
 textDivider.alignment = ["left", "center"];
 textDivider.text = decodeURI(config.dividerAfter);
 
-// Кнопка "Сбросить" отбивку на значение по умолчанию 
+// Кнопка "Сбросить" отбивку на значение по умолчанию
 var resetTabButton = viewPanel.add("button", undefined, "Сбросить");
 resetTabButton.text = "Сбросить";
 resetTabButton.alignment = ["right", "top"];
@@ -256,7 +256,7 @@ function main() {
   var selectCharacterStyle = currentDocument.characterStyles.itemByID(selectStyleID);
 
   // Рабочий массив с буквами
-  numCharList = letterList.slice(charList.selection.index);
+  var numCharList = letterList.slice(charList.selection.index);
 
   // Массив со знаками удаления
   if (delChar.value) {
@@ -306,15 +306,15 @@ function main() {
   // Предупреждение, если количество выделенных абзацев больше
   // количества зарезервированных букв
   if (selectParagraphs.length > numCharList.length) {
-    alert("Невозможно применить нумерацию!\nВыделенных абзацев: " + 
-    selectParagraphs.length + "\nБукв в списке: " + 
+    alert("Невозможно применить нумерацию!\nВыделенных абзацев: " +
+    selectParagraphs.length + "\nБукв в списке: " +
       numCharList.length, headerString, true);
     exit();
   }
 
   // Сбрасываем поиск по тексту
   app.findTextPreferences = app.changeTextPreferences = NothingEnum.nothing;
-  
+
   // Основной цикл
   for (i = (selectParagraphs.length - 1); i >= 0; i--) {
     var currentLetter = capitalLetters.value ? numCharList[i].toUpperCase() : numCharList[i];
@@ -330,7 +330,7 @@ function main() {
 /**
  * Сохраняем файл конфигурации.
  * @param {File} file - файл конфигурации,
- * @param {Object} newConfig - объект конфигурации. 
+ * @param {Object} newConfig - объект конфигурации.
  */
 function saveConfig(file, newConfig) {
   if (newConfig === undefined) {
@@ -339,7 +339,7 @@ function saveConfig(file, newConfig) {
     file.open("r");
     var lastConfig = eval(file.read());
     file.close();
-    
+
     if (newConfig.toSource() !== lastConfig.toSource()) {
       saveFile(file, newConfig.toSource());
     }
@@ -349,14 +349,14 @@ function saveConfig(file, newConfig) {
 /**
  * Читаем файл конфигурации.
  * @param {File} file - файл конфигурации.
- * @return {Object} объект конфигурации. 
+ * @return {Object} объект конфигурации.
  */
 function readConfig(file) {
   file.open("r");
   var read = eval(file.read());
   file.close();
 
-  // Элементарная проверка на валидность файла 
+  // Элементарная проверка на валидность файла
   if (typeof defaultConfig !== "object" ||
     !(read.hasOwnProperty("startChar") &&
     read.hasOwnProperty("windowLocation"))) {
@@ -378,14 +378,14 @@ function saveFile(file, content) {
 }
 
 /**
- * Получаем путь к папке, где расположен скрипт, 
+ * Получаем путь к папке, где расположен скрипт,
  * учитывая возможность запуска из ExtendScript Debugger.
  * @return {String} путь к папке в виде строки.
  */
 function getScriptFolder() {
-  try { 
-    // При запуске в отладчике, возникает исключение 
-    return app.activeScript.path; 
+  try {
+    // При запуске в отладчике, возникает исключение
+    return app.activeScript.path;
   }
   catch (error) {
     return File(error.fileName).path;
@@ -400,26 +400,26 @@ function getScriptFolder() {
  */
 function getCharacterStyles(parentFolder, parentFolderName) {
   var stylesArray = [];
-  
+
   var numOfCharacterStyles = parentFolder.characterStyles.length;
   for (var i = 0; i < numOfCharacterStyles; i++) {
-    var currentStyle = parentFolder.characterStyles[i];    
-    
+    var currentStyle = parentFolder.characterStyles[i];
+
     var allParentFolderName = parentFolderName !== undefined ? parentFolderName : "";
     if (parentFolder.constructor.name !== "Document") {
       allParentFolderName += parentFolder.name + " > ";
     }
-    
+
     var styleObject = {
       name: allParentFolderName + currentStyle.name,
       id: currentStyle.id
     };
     stylesArray.push(styleObject);
   }
-  
+
   var subFolders = parentFolder.characterStyleGroups;
   var numOfSubFolders = subFolders.length;
-  
+
   for (var i = 0; i < numOfSubFolders; i++) {
     var currentSubFolder = subFolders[i];
     var subStylesArray = getCharacterStyles(currentSubFolder, allParentFolderName);
