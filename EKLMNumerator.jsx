@@ -1,13 +1,14 @@
-// EKLMNumerator, v.1.8.2
+// EKLMNumerator, v.1.8.3
 // © vetl1489, Vitaly Shutikov
 // vetl1489@gmail.com
 // Adobe InDesign Script. Нумерация абзацев буквами русского алфавита.
 
+#target indesign;
 #targetengine "eklmn";
 
 var Script = {
   NAME: "EKLMNumerator",
-  VERSION: "v. 1.8.2",
+  VERSION: "v. 1.8.3",
   AUTHOR: "© vetl1489",
   CONFIG_FILE: "EKLMNumerator.conf",
 };
@@ -23,6 +24,17 @@ var UI = {
   CHECK_HEIGHT: 15
 };
 
+// Выходим, если старый InDesign
+if (parseInt(app.version, 10) < 6) {
+  alert("Скрипт для InDesign CS4+", headerString, true);
+  exit();
+}
+// Выходим если нет открытых документов
+if (app.documents.length === 0) {
+  alert("Откройте хотя бы один документ InDesign.", headerString);
+  exit();
+}
+
 // Конфигурация по умолчанию
 var defaultConfig = {
   startChar: 0,
@@ -30,7 +42,7 @@ var defaultConfig = {
   cutChars: encodeURI("ё,й,ъ,ь"),
   isTabBefore: false,
   isCapital: false,
-  dividerAfter: encodeURI(")^t"),
+  dividerAfter: encodeURI(")^t"),  // поддерживаются InDesign-коды ^t, ^p и т.д.
   lastDocument: encodeURI(app.activeDocument.name),
   applyCharacterStyle: 0,
   windowLocation: null
@@ -38,13 +50,6 @@ var defaultConfig = {
 
 // Массив букв
 var letterList = ["а", "б", "в", "г", "д", "е", "ё", "ж", "з", "и", "й", "к", "л", "м", "н", "о", "п", "р", "с", "т", "у", "ф", "х", "ц", "ч", "ш", "щ", "ъ", "ы", "ь", "э", "ю", "я"];
-
-// Выходим, если старый InDesign
-if (parseInt(app.version, 10) < 6) {
-  alert("Скрипт для InDesign CS4+", headerString, true);
-  exit();
-}
-if (app.documents.length === 0) exit();
 
 // Считываем конфиг
 var configFile = new File(getScriptFolder() + "/" + Script.CONFIG_FILE);
@@ -102,6 +107,8 @@ delChar.value = config.isCutChar;
 var deleteChars = group2.add("edittext");
 deleteChars.preferredSize = [76, UI.EDIT_TEXT_HEIGHT + 2];
 deleteChars.text = decodeURI(config.cutChars);
+if (delChar.value) deleteChars.enabled = true;
+else deleteChars.enabled = false;
 
 // ViewPanel - панель "Вид"
 var viewPanel = window.add("panel", undefined, "Вид");
@@ -197,11 +204,20 @@ window.show();
  */
 
 /**
+ * Чекбокс "Пропустить буквы".
+ * Включаем/отключаем поле ввода исключаемых букв.
+ */
+delChar.onClick = function () {
+  if (delChar.value) deleteChars.enabled = true;
+  else deleteChars.enabled = false;
+};
+
+/**
  * Кнопка "Сбросить".
  * Устанавливаем значение по умолчанию для поля "Отбить от текста".
  */
 resetTabButton.onClick = function () {
-  textDivider.text = ")^t";
+  textDivider.text = decodeURI(defaultConfig.dividerAfter);
 };
 
 /**
@@ -261,9 +277,10 @@ function main() {
   // Массив со знаками удаления
   if (delChar.value) {
     // Создаем новый массив из символов введенных для исключения:
-    var ignoreCharacters = deleteChars.text.toLowerCase().split(/(,(\s+)?)|(\.(\s+)?)|((\s+)?)/);
+    var ignoreCharacters = deleteChars.text.toLowerCase().split(/[,.\s]+/);
     // Имена найденных удаляем из рабочего массива
     for (var i = 0; i < ignoreCharacters.length; i++) {
+      if (!ignoreCharacters[i]) continue;
       for (var j = 0; j < numCharList.length; j++) {
         if (numCharList[j] === ignoreCharacters[i]) { numCharList.splice(j, 1); }
       }
@@ -315,6 +332,7 @@ function main() {
   // Сбрасываем поиск по тексту
   app.findTextPreferences = app.changeTextPreferences = NothingEnum.nothing;
 
+  var currentSelection = currentDocument.selection[0];
   // Основной цикл
   for (i = (selectParagraphs.length - 1); i >= 0; i--) {
     var currentLetter = capitalLetters.value ? numCharList[i].toUpperCase() : numCharList[i];
@@ -322,7 +340,7 @@ function main() {
     app.findTextPreferences.findWhat = "^|^|" + tabBeforeText + currentLetter;
     app.changeTextPreferences.changeTo = tabBeforeText + currentLetter + textDividerAfter;
     app.changeTextPreferences.appliedCharacterStyle = selectCharacterStyle;
-    currentDocument.selection[0].paragraphs[i].changeText();
+    currentSelection.paragraphs[i].changeText();
   }
   app.findTextPreferences = app.changeTextPreferences = NothingEnum.nothing;
 }
