@@ -1,7 +1,7 @@
 /**
  * @file EKLMNumerator.jsx
  * @author Vitaly Shutikov <vetl1489@gmail.com>
- * @version 1.9.0
+ * @version 1.9.1
  * @description Adobe InDesign Script. Нумерация абзацев буквами русского алфавита.
  */
 
@@ -10,7 +10,7 @@
 
 var Script = {
   NAME: "EKLMNumerator",
-  VERSION: "v. 1.9.0",
+  VERSION: "v. 1.9.1",
   AUTHOR: "© vetl1489",
   CONFIG_FILE: "EKLMNumerator.conf",
 };
@@ -41,7 +41,7 @@ var DEFAULT_CONFIG = {
   isTabBefore: false,
   isCapital: false,
   dividerAfter: encodeURI(")^t"),  // поддерживаются InDesign-коды ^t, ^p и т.д.
-  lastDocument: encodeURI(startDocument.fullName.fullName),
+  lastDocument: encodeURI(startDocument.saved ? startDocument.fullName.fullName : startDocument.name),
   applyCharacterStyle: 0, // индекс в DDL стилей
   windowLocation: null
 };
@@ -204,7 +204,8 @@ UI.prototype._populate = function (config, characterStylesList) {
   }
   this.characterStyleDDL.selection = 0;
   // Если новый документ, выбираем [Без стиля]
-  if (decodeURI(config.lastDocument) === this.document.fullName.fullName
+  var docName = this.document.saved ? this.document.fullName.fullName : this.document.name;
+  if (decodeURI(config.lastDocument) === docName
     && characterStylesList.length - 1 >= config.applyCharacterStyle) {
     this.characterStyleDDL.selection = config.applyCharacterStyle;
   }
@@ -234,6 +235,7 @@ UI.prototype.show = function () {
  * @return {Object} объект конфигурации
  */
 UI.prototype.getActualConfig = function () {
+  var currentDoc = app.activeDocument;
   return {
     startLetter: this.letterListDDL.selection.index,
     isSkipLetters: this.skipLettersCB.value,
@@ -241,7 +243,7 @@ UI.prototype.getActualConfig = function () {
     isTabBefore: this.tabBeforeCB.value,
     isCapital: this.capitalLettersCB.value,
     dividerAfter: encodeURI(this.textDividerET.text),
-    lastDocument: encodeURI(app.activeDocument.fullName.fullName),
+    lastDocument: encodeURI(currentDoc.saved ? currentDoc.fullName.fullName : currentDoc.name),
     applyCharacterStyle: this.characterStyleDDL.selection.index,
     windowLocation: [this.window.location[0], this.window.location[1]]
   }
@@ -295,7 +297,7 @@ ui.okButton.onClick = function () {
  * Сохраняет настройки в файл конфигурации при закрытии окна
  */
 ui.window.onClose = function () {
-  // Исключение, если нет открытых документов 
+  // Исключение, если нет открытых документов
   try {
     saveConfig(configFile, ui.getActualConfig());
   } catch (e) {}
@@ -320,9 +322,11 @@ function main() {
 
   var uiData = ui.getActualConfig();
   var currentDocument = app.activeDocument;
+  var currentDocName = currentDocument.saved ? currentDocument.fullName.fullName : currentDocument.name;
+  var startDocName = startDocument.saved ? startDocument.fullName.fullName : startDocument.name;
 
   // Перечитываем стили, если другой документ стал активным
-  if (currentDocument.fullName.fullName !== startDocument.fullName.fullName) {
+  if (currentDocName !== startDocName) {
     startDocument = currentDocument;
     characterStylesList = getCharacterStyles(currentDocument);
     ui.updateStyles(characterStylesList);
@@ -381,7 +385,7 @@ function main() {
     return;
   };
 
-  // Применяем нумерацию 
+  // Применяем нумерацию
   applyNumbering(selectParagraphs, actualNumberingList, selectStyle, uiData);
 }
 
@@ -501,7 +505,7 @@ function loadConfig(file) {
   if (!file.exists) {
     saveConfig(file);
     config = DEFAULT_CONFIG;
-  } 
+  }
   else {
     file.open("r");
     var config = eval(file.read());
