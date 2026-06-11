@@ -1,7 +1,7 @@
 /**
  * @file EKLMNumerator.jsx
  * @author Vitaly Shutikov <vetl1489@gmail.com>
- * @version 1.9.1
+ * @version 1.9.2
  * @description Adobe InDesign Script. Нумерация абзацев буквами русского алфавита.
  */
 
@@ -10,7 +10,7 @@
 
 var Script = {
   NAME: "EKLMNumerator",
-  VERSION: "v. 1.9.1",
+  VERSION: "v. 1.9.2",
   AUTHOR: "© vetl1489",
   CONFIG_FILE: "EKLMNumerator.conf",
 };
@@ -41,8 +41,8 @@ var DEFAULT_CONFIG = {
   isTabBefore: false,
   isCapital: false,
   dividerAfter: encodeURI(")^t"),  // поддерживаются InDesign-коды ^t, ^p и т.д.
-  lastDocument: encodeURI(startDocument.saved ? startDocument.fullName.fullName : startDocument.name),
-  applyCharacterStyle: 0, // индекс в DDL стилей
+  lastDocument: encodeURI(getDocName(startDocument)),
+  applyCharacterStyle: 0,  // индекс в DDL стилей
   windowLocation: null
 };
 
@@ -92,30 +92,30 @@ UI.prototype._init = function () {
   _numPanel.margins = UI_CONSTS.BASE_MARGIN;
   _numPanel.alignment = "fill";
 
-  // _group1. Начать список с буквы
-  var _group1 = _numPanel.add("group");
-  _group1.orientation = "row";
-  _group1.alignChildren = ["right", "center"];
+  // _startGroup. Начать список с буквы
+  var _startGroup = _numPanel.add("group");
+  _startGroup.orientation = "row";
+  _startGroup.alignChildren = ["right", "center"];
 
-  var _startString = _group1.add("statictext", undefined, "Начать список с");
+  var _startString = _startGroup.add("statictext", undefined, "Начать список с");
   _startString.preferredSize.width = 125;
   _startString.justify = "right";
 
   // Выбор стартовой буквы для нумерации
-  this.letterListDDL = _group1.add("dropdownlist");
+  this.letterListDDL = _startGroup.add("dropdownlist");
   this.letterListDDL.preferredSize = [60, UI_CONSTS.EDIT_TEXT_HEIGHT];
 
-  // _group2. Исключить буквы
-  var _group2 = _numPanel.add("group");
-  _group2.orientation = "row";
-  _group2.alignChildren = ["left", "bottom"];
+  // _startGroup. Исключить буквы
+  var _skipGroup = _numPanel.add("group");
+  _skipGroup.orientation = "row";
+  _skipGroup.alignChildren = ["left", "bottom"];
 
   // Чекбокс, включающий удаление букв
-  this.skipLettersCB = _group2.add("checkbox", undefined, "Пропустить буквы");
+  this.skipLettersCB = _skipGroup.add("checkbox", undefined, "Пропустить буквы");
   this.skipLettersCB.preferredSize.height = UI_CONSTS.CHECK_HEIGHT + 4;
 
   // Буквы для исключения, через пробел или запятую
-  this.skipLettersET = _group2.add("edittext");
+  this.skipLettersET = _skipGroup.add("edittext");
   this.skipLettersET.preferredSize = [76, UI_CONSTS.EDIT_TEXT_HEIGHT + 2];
 
   // Панель "Вид"
@@ -135,19 +135,19 @@ UI.prototype._init = function () {
   this.capitalLettersCB = _viewPanel.add("checkbox", undefined, "Нумерация ЗАГЛАВНЫМИ");
   this.capitalLettersCB.preferredSize.height = UI_CONSTS.CHECK_HEIGHT;
 
-  // _group3. Отбить от текста
-  var _group3 = _viewPanel.add("group");
-  _group3.orientation = "row";
-  _group3.alignChildren = ["left", "center"];
-  _group3.spacing = UI_CONSTS.BASE_SPACING;
-  _group3.margins = 0;
-  _group3.alignment = ["fill", "top"];
+  // _divGroup. Отбить от текста
+  var _divGroup = _viewPanel.add("group");
+  _divGroup.orientation = "row";
+  _divGroup.alignChildren = ["left", "center"];
+  _divGroup.spacing = UI_CONSTS.BASE_SPACING;
+  _divGroup.margins = 0;
+  _divGroup.alignment = ["fill", "top"];
 
-  var _tabString = _group3.add("statictext", undefined, "Отбить от текста");
+  var _tabString = _divGroup.add("statictext", undefined, "Отбить от текста");
   _tabString.alignment = ["left", "fill"];
 
   // Поле ввода отбивки нумерации от текста
-  this.textDividerET = _group3.add("edittext");
+  this.textDividerET = _divGroup.add("edittext");
   this.textDividerET.preferredSize.width = 97;
   this.textDividerET.alignment = ["left", "center"];
 
@@ -162,14 +162,14 @@ UI.prototype._init = function () {
   this.characterStyleDDL.maximumSize.width = UI_CONSTS.WINDOW_WIDTH - 40;
 
   // _group4. Кнопки "ОК" и "Отмена"
-  var _group4 = this.window.add("group");
-  _group4.orientation = "row";
-  _group4.alignChildren = ["right", "center"];
-  _group4.spacing = UI_CONSTS.BASE_SPACING;
-  _group4.alignment = ["fill", "top"];
+  var _buttonGroup = this.window.add("group");
+  _buttonGroup.orientation = "row";
+  _buttonGroup.alignChildren = ["right", "center"];
+  _buttonGroup.spacing = UI_CONSTS.BASE_SPACING;
+  _buttonGroup.alignment = ["fill", "top"];
 
-  this.okButton = _group4.add("button", undefined, "ОК", { name: "ok" });
-  this.cancelButton = _group4.add("button", undefined, "Отмена", { name: "cancel" });
+  this.okButton = _buttonGroup.add("button", undefined, "ОК", { name: "ok" });
+  this.cancelButton = _buttonGroup.add("button", undefined, "Отмена", { name: "cancel" });
 };
 
 /**
@@ -180,7 +180,6 @@ UI.prototype._init = function () {
 UI.prototype._populate = function (config, characterStylesList) {
   if (config.windowLocation) this.window.location = config.windowLocation;
   else this.window.center();
-  // this.window.center();
 
   // Заполняем список буквами
   for (var i = 0; i < LETTER_LIST.length; i++) {
@@ -204,8 +203,7 @@ UI.prototype._populate = function (config, characterStylesList) {
   }
   this.characterStyleDDL.selection = 0;
   // Если новый документ, выбираем [Без стиля]
-  var docName = this.document.saved ? this.document.fullName.fullName : this.document.name;
-  if (decodeURI(config.lastDocument) === docName
+  if (decodeURI(config.lastDocument) === getDocName(startDocument)
     && characterStylesList.length - 1 >= config.applyCharacterStyle) {
     this.characterStyleDDL.selection = config.applyCharacterStyle;
   }
@@ -213,7 +211,7 @@ UI.prototype._populate = function (config, characterStylesList) {
 
 /**
  * Обновляет выпадающий список стилей
- * @param {Array<{name: string, id: number}>} characterStylesList — новый список стилей
+ * @param {Array<{name: string, id: number}>} characterStylesList - новый список стилей
  */
 UI.prototype.updateStyles = function (characterStylesList) {
   this.characterStyleDDL.removeAll();
@@ -243,14 +241,14 @@ UI.prototype.getActualConfig = function () {
     isTabBefore: this.tabBeforeCB.value,
     isCapital: this.capitalLettersCB.value,
     dividerAfter: encodeURI(this.textDividerET.text),
-    lastDocument: encodeURI(currentDoc.saved ? currentDoc.fullName.fullName : currentDoc.name),
+    lastDocument: encodeURI(getDocName(currentDoc)),
     applyCharacterStyle: this.characterStyleDDL.selection.index,
     windowLocation: [this.window.location[0], this.window.location[1]]
   }
 }
 
 // Запускам окно
-var characterStylesList = getCharacterStyles(this.document);
+var characterStylesList = getCharacterStyles(startDocument);
 var ui = new UI(app.activeDocument, SCRIPT_HEADER);
 ui._init();
 ui._populate(config, characterStylesList);
@@ -297,7 +295,7 @@ ui.okButton.onClick = function () {
  * Сохраняет настройки в файл конфигурации при закрытии окна
  */
 ui.window.onClose = function () {
-  // Исключение, если нет открытых документов
+  // Исключение, если нет открытых документов 
   try {
     saveConfig(configFile, ui.getActualConfig());
   } catch (e) {}
@@ -311,8 +309,6 @@ ui.window.onClose = function () {
 
 /**
  * Основная функция: проверяет выделение, применяет нумерацию.
- * @param {void}
- * @returns {void}
  */
 function main() {
   if (app.documents.length === 0) {
@@ -322,11 +318,9 @@ function main() {
 
   var uiData = ui.getActualConfig();
   var currentDocument = app.activeDocument;
-  var currentDocName = currentDocument.saved ? currentDocument.fullName.fullName : currentDocument.name;
-  var startDocName = startDocument.saved ? startDocument.fullName.fullName : startDocument.name;
 
   // Перечитываем стили, если другой документ стал активным
-  if (currentDocName !== startDocName) {
+  if (getDocName(currentDocument) !== getDocName(startDocument)) {
     startDocument = currentDocument;
     characterStylesList = getCharacterStyles(currentDocument);
     ui.updateStyles(characterStylesList);
@@ -376,16 +370,16 @@ function main() {
   var selectStyleID = characterStylesList[uiData.applyCharacterStyle].id;
   var selectStyle = currentDocument.characterStyles.itemByID(selectStyleID);
 
-  // Если стиль был удален во время работы, предупреждаем, перечитываем стили
+  // Если стиль был удален во время работы, предупреждаем, обновляем список стилей
   if (!selectStyle.isValid) {
     var missingStyleName = characterStylesList[uiData.applyCharacterStyle].name;
     characterStylesList = getCharacterStyles(currentDocument);
     ui.updateStyles(characterStylesList);
     alert("Выбранный стиль символа \"" + missingStyleName + "\" отсутствует!\nСписок стилей символов обновлен.", SCRIPT_HEADER, true);
     return;
-  };
+  }
 
-  // Применяем нумерацию
+  // Применяем нумерацию 
   applyNumbering(selectParagraphs, actualNumberingList, selectStyle, uiData);
 }
 
@@ -426,9 +420,9 @@ function applyNumbering(selectParagraphs, numberingList, characterStyle, config)
 
 /**
  * Генерирует список букв с исключениями
- * @param {Array<String>} defaultNumberingList - исходный список букв
- * @param {Array<String>} ignoreLetters - массив букв для исключения
- * @return {Array<String>} массив букв для нумерации
+ * @param {Array<string>} defaultNumberingList - исходный список букв
+ * @param {Array<string>} ignoreLetters - массив букв для исключения
+ * @return {Array<string>} массив букв для нумерации
  */
 function buildNumberingList(defaultNumberingList, ignoreLetters) {
   var result = [];
@@ -438,12 +432,21 @@ function buildNumberingList(defaultNumberingList, ignoreLetters) {
     if (!ignoreLetters[i]) continue;
     ignoreTable[ignoreLetters[i]] = true;
   }
-  for (i = 0; i < defaultNumberingList.length; i++) {
+  for (var i = 0; i < defaultNumberingList.length; i++) {
     if (!ignoreTable[defaultNumberingList[i]]) {
       result.push(defaultNumberingList[i]);
     }
   }
   return result;
+}
+
+/**
+ * Получает имя документа, в зависимости от того сохранен он или нет 
+ * @param {Document} document - документ
+ * @return {string} имя документа
+ */
+function getDocName(document) {
+  return document.saved ? document.fullName.fullName : document.name; 
 }
 
 /**
@@ -481,21 +484,15 @@ function checkConfig(config) {
  * @param {Object} config - объект конфигурации
  */
 function saveConfig(file, config) {
-  if (config === undefined) {
+  if (config === undefined || !file.exists) {
     saveFile(file, DEFAULT_CONFIG.toSource());
   } else {
-    file.open("r");
-    var lastConfig = eval(file.read());
-    file.close();
-
-    if (config.toSource() !== lastConfig.toSource()) {
-      saveFile(file, config.toSource());
-    }
+    saveFile(file, config.toSource());
   }
 }
 
 /**
- * Загружаем конфигурационный файл
+ * Загружает конфигурационный файл
  * @param {File} file - `.conf` файл конфигурации
  * @return {Object} объект конфигурации
  */
@@ -505,10 +502,10 @@ function loadConfig(file) {
   if (!file.exists) {
     saveConfig(file);
     config = DEFAULT_CONFIG;
-  }
+  } 
   else {
     file.open("r");
-    var config = eval(file.read());
+    config = eval(file.read());
     file.close();
 
     if (!checkConfig(config)) {
@@ -522,7 +519,7 @@ function loadConfig(file) {
 /**
  * Сохраняет файл
  * @param {File} file - сохраняемый файл
- * @param {String} content - содержимое файла
+ * @param {string} content - содержимое файла
  */
 function saveFile(file, content) {
   file.open("w");
@@ -532,7 +529,7 @@ function saveFile(file, content) {
 
 /**
  * Получает путь к папке, где расположен скрипт
- * @return {String} путь к папке в виде строки
+ * @return {string} путь к папке в виде строки
  */
 function getScriptFolder() {
   try {
@@ -547,20 +544,19 @@ function getScriptFolder() {
 /**
  * Рекурсивное получение списка стилей символов
  * @param {CharacterStyleGroup} parentFolder - родительская папка со стилями (весь документ)
- * @param {String} parentFolderName - строка с именами всех родительских папок
+ * @param {string} parentFolderName - строка с именами всех родительских папок
  * @return {Array<Object>} массив c объектами {name:style_name, id:style_id}
  */
 function getCharacterStyles(parentFolder, parentFolderName) {
   var stylesArray = [];
+  var allParentFolderName = parentFolderName !== undefined ? parentFolderName : "";
+  if (parentFolder.constructor.name !== "Document") {
+    allParentFolderName += parentFolder.name + " > ";
+  }
 
   var numOfCharacterStyles = parentFolder.characterStyles.length;
   for (var i = 0; i < numOfCharacterStyles; i++) {
     var currentStyle = parentFolder.characterStyles[i];
-    var allParentFolderName = parentFolderName !== undefined ? parentFolderName : "";
-    if (parentFolder.constructor.name !== "Document") {
-      allParentFolderName += parentFolder.name + " > ";
-    }
-
     stylesArray.push({
       name: allParentFolderName + currentStyle.name,
       id: currentStyle.id
@@ -569,11 +565,10 @@ function getCharacterStyles(parentFolder, parentFolderName) {
 
   var subFolders = parentFolder.characterStyleGroups;
   var numOfSubFolders = subFolders.length;
-
   for (var i = 0; i < numOfSubFolders; i++) {
-    var currentSubFolder = subFolders[i];
-    var subStylesArray = getCharacterStyles(currentSubFolder, allParentFolderName);
-    stylesArray = stylesArray.concat(subStylesArray);
+    stylesArray = stylesArray.concat(
+      getCharacterStyles(subFolders[i], allParentFolderName)
+    );
   }
   return stylesArray;
 }
