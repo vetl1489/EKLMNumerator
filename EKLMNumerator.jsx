@@ -189,8 +189,7 @@ UI.prototype._populate = function (config, characterStylesList) {
 
   this.skipLettersCB.value = config.isSkipLetters;
   this.skipLettersET.text = decodeURI(config.skipLetters);
-  if (this.skipLettersCB.value) this.skipLettersET.enabled = true;
-  else this.skipLettersET.enabled = false;
+  this.skipLettersET.enabled = this.skipLettersCB.value;
 
   this.tabBeforeCB.value = config.isTabBefore;
   this.capitalLettersCB.value = config.isCapital;
